@@ -1,8 +1,10 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -O2
-TARGET = out
-SRCDIR = HW1
-SOURCES = $(SRCDIR)/main.cpp
+CXXFLAGS = -Wall -ansi -pedantic
+CXXFLAGS += -g
+TARGET = hw1
+SOURCES =
+
+SOURCES += ./hw1.cpp
 
 .PHONY: all clean build
 
