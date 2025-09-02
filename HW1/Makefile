@@ -4,7 +4,7 @@ CXXFLAGS += -g
 TARGET = hw1
 SOURCES =
 
-SOURCES += ./hw1.cpp
+SOURCES += ./hw1.cxx
 
 .PHONY: all clean build
 
