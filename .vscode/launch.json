@@ -6,7 +6,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/HW1/hw1",
-      "args": [],
+      "args": ["100","100","img.ppm"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}/HW1",
       "environment": [],
