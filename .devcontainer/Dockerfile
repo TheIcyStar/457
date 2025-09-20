@@ -6,6 +6,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         gcc-11 \
         g++-11 \
         build-essential \
+        freeglut3-dev \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100 \
     && apt-get clean \

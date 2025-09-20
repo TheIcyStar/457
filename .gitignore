@@ -1,3 +1,5 @@
 hw*
 !hw*.cpp
 *.ppm
+template
+!template.cxx
