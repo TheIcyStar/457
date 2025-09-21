@@ -50,6 +50,7 @@ CC = g++
 
 # flags to the compiler
 CXX_FLAGS = -Wall -ansi -pedantic
+CXX_FLAGS += -g
 
 
 

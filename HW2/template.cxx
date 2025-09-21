@@ -41,12 +41,21 @@
 #include <GL/glut.h>
 #include <stdlib.h>
 #include <iostream>
+#include <cstdlib>
 
 
 using std::cin;
 using std::cerr;
 using std::endl;
 
+// Simple structure for a point
+struct Point
+{
+    int x;
+    int y;
+    Point() : x(-1), y(-1) {}
+    Point(int x, int y) : x(x), y(y) {}
+};
 
 // callbacks for glut (see main() for what they do)
 void reshape(int w, int h);
@@ -60,29 +69,17 @@ void init();
 void addPoint(int x, int y);
 void keyboard_input();
 void midpoint_line();
+int implicit_line(Point* p0, Point* p1, int x, int y);
 
-
-
-// Simple structure for a point
-struct Point
-{
-    int x;
-    int y;
-    Point() : x(-1), y(-1) {}
-    Point(int x, int y) : x(x), y(y) {}
-};
 
 
 // Keeps track of what I am drawing currently.
 enum DrawingMode { NONE, LINE };
 DrawingMode drawing_mode = NONE;
 
-
-
 // Initial window size
 int win_w = 512;
 int win_h = 512;
-
 
 // For lines, 2 points will do.
 Point points[2];
@@ -121,7 +118,6 @@ int main(int argc, char* argv[])
     // set up in this function.
     init();
 
-
     // register callbacks for glut
     glutDisplayFunc(display);   // for display
     glutReshapeFunc(reshape);   // for window move/resize
@@ -136,7 +132,6 @@ int main(int argc, char* argv[])
 }
 
 
-
 void init()
 {
     // set background color to black
@@ -149,7 +144,6 @@ void init()
     glOrtho(0.0, win_w-1, 0.0, win_h-1, -1.0, 1.0);
 
 }
-
 
 
 // called when the window is resized/moved (plus some other cases)
@@ -296,41 +290,104 @@ void keyboard_input()
 
 
 
-// a helper function to draw a line
-// you need to modify this function for midpoint algorithm
-// anything you draw here goes to back buffer
 void midpoint_line()
 {
-    // select a line color of your choice
-    glColor3f(1.0, 0.0, 0.0);
+    //Ensure we draw from left to right
+    Point* startPoint;
+    Point* endPoint;
+    if(points[0].x <= points[1].x){
+        startPoint = &points[0];
+        endPoint = &points[1];
+    } else {
+        startPoint = &points[1];
+        endPoint = &points[0];
+    }
+    // float m = ((float)endPoint->y - (float)startPoint->y)/((float)endPoint->x - (float)startPoint->x);
+    int rise = endPoint->y - startPoint->y;
+    int run = endPoint->x - startPoint->x;
+    int temp;
 
-    // now, draw a line between 2 end points
-    // you need to draw a line using incremental midpoint algorithm
-    //     without any floating point calculations, so remove
-    //     next 4 lines and implement incremental midpoint algorithm here.
-    //
-    // you are not allowed to use GL_LINES for this assignment.
-    // you must use GL_POINTS instead.
-    //
-    // To draw a pixel (x,y) with the color you set above, use
-    //         glBegin(GL_POINTS);
-    //            glVertex2d(x, y);
-    //         glEnd();
-    // Any number of glVertex2d() may appear between glBegin() and glEnd()
-    // Or, even glColor3f() may appear there, if you want to change the color
-    //      of each point.
-    // Also, any c++ code can appear between glBegin() and glEnd()
-    //
-    // Note: GL provides commands for drawing.
-    //       glut provides gui, including window on which you are drawing.
-    //       The origin (0,0) of the coordinate system is
-    //          at bottom left in GL and
-    //          at top left in glut.
-    //       You must compensate the difference between the coordinate
-    //       systems used by GL and glut, when drawing.
-    glBegin(GL_LINES);
-    glVertex2d(points[0].x, win_h - points[0].y);
-    glVertex2d(points[1].x, win_h - points[1].y);
+    /*
+    This next part moves points into c0, and then sets up a 2x2 matrix
+    This matrix transforms coords back to where they should be
+    The swap above handles c2-c5
+    Note that the drawn line is flipped, so a line in c0 is rendered as if its in c7
+    ```
+            \c2 | c1/
+             \  |  /
+          c3  \ | /  c0
+        _______\|/_____
+               /|\
+          c4  / | \  c7
+             /  |  \
+            /c5 | c6\
+    ```
+    */
+    int lineCorrMat[4] = {1,0,0,1};
+    if(rise > 0 && rise > run){ //m > 1, c1, flip about x=y
+        lineCorrMat[0] =  0;  lineCorrMat[1] =  1;
+        lineCorrMat[2] =  1;  lineCorrMat[3] =  0;
+
+        temp = startPoint->x;
+        startPoint->x = startPoint->y;
+        startPoint->y = temp;
+
+        temp = endPoint->x;
+        endPoint->x = endPoint->y;
+        endPoint->y = temp;
+
+    } else if(rise >= 0 && rise <= run){ //0 < m < 1, c0, do nothing
+
+    } else if(rise < 0 && rise*-1 <= run){ //-1 < m < 0, c7, flip about x
+        lineCorrMat[0] =  1;  lineCorrMat[1] =  0;
+        lineCorrMat[2] =  0;  lineCorrMat[3] = -1;
+
+        startPoint->y = -startPoint->y;
+        endPoint->y = -endPoint->y;
+
+    } else { // m < -1, c6, flip about x, then about x=y
+        lineCorrMat[0] =  0;  lineCorrMat[1] =  1;
+        lineCorrMat[2] = -1;  lineCorrMat[3] =  0;
+
+        temp = startPoint->x;
+        startPoint->x = -startPoint->y;
+        startPoint->y = temp;
+
+        temp = endPoint->x;
+        endPoint->x = -endPoint->y;
+        endPoint->y = temp;
+    }
+
+    //Loop init values
+    int x = startPoint->x;
+    int y = startPoint->y;
+    int xdiff = endPoint->x - startPoint->x; //(x_1 - x_0), used for `d_next` //y'know, the compiler would have probably made these constants for us inline......
+    int ydiff = startPoint->y - endPoint->y; //(y_0 - y_1), used for `d_next`
+    float d = 2*implicit_line(startPoint, endPoint, startPoint->x, startPoint->y) +2*ydiff + xdiff;
+
+    //Point drawing loop
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_POINTS);
+
+    while(x <= endPoint->x){
+        glVertex2d(
+            lineCorrMat[0]*x + lineCorrMat[1]*y,
+            win_h - lineCorrMat[2]*x - lineCorrMat[3]*y
+        );
+
+        if(d > 0){
+            d = d + 2*ydiff;
+        } else {
+            y++;
+            d = d + 2*ydiff + 2*xdiff;
+        }
+        x++;
+    }
     glEnd();
+}
+
+
+int implicit_line(Point* p0, Point* p1, int x, int y){
+    return (p0->y - p1->y)*x + (p1->x - p0->x)*y +p0->x*p1->y - p1->x*p0->y;
 }
 
