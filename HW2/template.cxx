@@ -5,43 +5,19 @@
     Alexander Petrov
     aop5448
 
-    9/⚠️⚠️/25
+    9/24/25
+
+    Description:
+    This program draws lines or circles.
+    Press L for line drawing mode and C for circle drawing mode.
+    Lines and circles are drawn using the midpoint algorithm with no floating point operations
+    during the drawing loop.
 */
-
-
-/*********************************************************************
- *  CMPSC 457                                                        *
- *  Template code for HW 2                                           *
- *                                                                   *
- *                                                                   *
- *  Description:                                                     *
- *                                                                   *
- *  This is a template code for homework 2.                          *
- *  It takes two points from users through left button clicks.       *
- *  Then, it draws a line between the two points using               *
- *  Midpoint Algorithm (not implemented in this template).           *
- *                                                                   *
- *                                                                   *
- *  User interface:                                                  *
- *                                                                   *
- *  1. When it starts, its drawing mode is set to NONE.              *
- *     To draw a line, press 'l' to put it in LINE drawing mode.     *
- *     Then, select two points by clicking left mouse button         *
- *     The program draws a line between the two points.              *
- *  2. You can also input the points using keyboard.                 *
- *     To do this, press 'k' and type the coordinates                *
- *     on the terminal (NOTE: This feature is for grading purpose    *
- *     only and has not been tested extensively)                     *
- *  3. To quit the program, press 'q'.                               *
- *  4. Any other keys that are not used to switch drawing modes      *
- *     will put the drawing mode to NONE                             *
- *********************************************************************/
-
 
 #include <GL/glut.h>
 #include <stdlib.h>
 #include <iostream>
-#include <cstdlib>
+#include <cmath>
 
 
 using std::cin;
@@ -69,12 +45,14 @@ void init();
 void addPoint(int x, int y);
 void keyboard_input();
 void midpoint_line();
+void draw_circle();
 int implicit_line(Point* p0, Point* p1, int x, int y);
+float implicit_circle(float x, float y, float r);
 
 
 
 // Keeps track of what I am drawing currently.
-enum DrawingMode { NONE, LINE };
+enum DrawingMode { NONE, LINE, CIRCLE };
 DrawingMode drawing_mode = NONE;
 
 // Initial window size
@@ -175,11 +153,15 @@ void display()
 
     // now, draw on back buffer just cleared
     switch (drawing_mode) {
-    case LINE:
-	midpoint_line();
-	break;
-    default:
-	break;
+        case LINE:
+            midpoint_line();
+            break;
+        case CIRCLE:
+            draw_circle();
+            break;
+        break;
+            default:
+        break;
     }
 
     // swap the buffers.
@@ -219,22 +201,23 @@ void mouse(int button, int state, int x, int y)
 void keyboard(unsigned char key, int x, int y)
 {
     switch (key) {
-    case 'q':  // quit the program
-	exit(0);
-    case 'l':  // draw a line
-	drawing_mode = LINE;
-	num_points = 0;
-	break;
-    case 'c':  // draw a circle; not implemented
-        drawing_mode = NONE;
-	break;
-    case 'k':  // for grading purpose only--do not modify
-	keyboard_input();
-	num_points = 0;
-	break;
-    default:
-	drawing_mode = NONE;
-	break;
+        case 'q':  // quit the program
+            exit(0);
+        case 'l':  // draw a line
+            drawing_mode = LINE;
+            num_points = 0;
+            break;
+        case 'c':  // draw a circle; not implemented
+            drawing_mode = CIRCLE;
+            num_points = 0;
+            break;
+        case 'k':  // for grading purpose only--do not modify
+            keyboard_input();
+            num_points = 0;
+            break;
+        default:
+            drawing_mode = NONE;
+            break;
     }
 }
 
@@ -243,26 +226,34 @@ void keyboard(unsigned char key, int x, int y)
 void addPoint(int x, int y)
 {
     switch (drawing_mode) {
-    case LINE:  // save the points until we have 2 points
-	points[num_points++] = Point(x, y);
-	if (num_points == 2) {
-	    // we have 2 points now, so we can draw a line
+        case LINE:  // save the points until we have 2 points
+            points[num_points++] = Point(x, y);
+            if (num_points == 2) {
+                // we have 2 points now, so we can draw a line
 
-	    // reset the num_points to 0 for next line
-	    num_points = 0;
+                // reset the num_points to 0 for next line
+                num_points = 0;
 
-	    // tell glut that the current window needs to be redisplayed.
-	    // glut will then redisplay the current window.
-	    // this means display() callback will be called.
-	    // display() in turn will draw a midpoint line on back buffer
-	    //   and swap the back buffer with the front buffer
-	    // by swapping the buffers, the back buffer becomes visible,
-	    //   ie, displayed on the window
-	    glutPostRedisplay();
-	}
-	break;
-    default:
-	break;
+                // tell glut that the current window needs to be redisplayed.
+                // glut will then redisplay the current window.
+                // this means display() callback will be called.
+                // display() in turn will draw a midpoint line on back buffer
+                //   and swap the back buffer with the front buffer
+                // by swapping the buffers, the back buffer becomes visible,
+                //   ie, displayed on the window
+                glutPostRedisplay();
+            }
+            break;
+        case CIRCLE:
+            points[num_points] = Point(x,y);
+            num_points = (num_points + 1) % 2;
+
+            if(num_points == 0){
+                glutPostRedisplay();
+            }
+            break;
+        default:
+            break;
     }
 }
 
@@ -391,3 +382,50 @@ int implicit_line(Point* p0, Point* p1, int x, int y){
     return (p0->y - p1->y)*x + (p1->x - p0->x)*y +p0->x*p1->y - p1->x*p0->y;
 }
 
+void draw_circle(){
+    //Draw center dot
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_POINTS);
+    glVertex2d(points[0].x, win_h - points[0].y);
+    glEnd();
+
+    //Init values
+    float xComponents = (float)points[0].x - (float)points[1].x;
+    float yComponents = (float)points[0].y - (float)points[1].y;
+    int radius = ( std::sqrt(xComponents*xComponents + yComponents*yComponents) );
+
+    int y = radius;
+    // float d = 5/4 - (float)radius;
+    int d = 5 - 4*radius;
+
+    //Drawing loop
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_POINTS);
+
+    for(int x=0; x <= y; x++){
+
+        glVertex2d(points[0].x + x, win_h - points[0].y - y);
+        glVertex2d(points[0].x + x, win_h - points[0].y + y);
+        glVertex2d(points[0].x - x, win_h - points[0].y - y);
+        glVertex2d(points[0].x - x, win_h - points[0].y + y);
+
+        glVertex2d(points[0].x + y, win_h - points[0].y - x);
+        glVertex2d(points[0].x + y, win_h - points[0].y + x);
+        glVertex2d(points[0].x - y, win_h - points[0].y - x);
+        glVertex2d(points[0].x - y, win_h - points[0].y + x);
+
+        if(d < 0){
+            // d += 2*x + 3;
+            d += 8*x + 12;
+        } else {
+            // d += 2*(x-y) + 5;
+            d += 8*(x-y) + 20;
+            y--;
+        }
+    }
+    glEnd();
+}
+
+float implicit_circle(float x, float y, float r){
+    return x*x + y*y - r*r;
+}
