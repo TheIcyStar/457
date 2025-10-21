@@ -1,49 +1,10 @@
-##########################################################
-#  CMPSC 457 Section 001                                 #
-#  Homework 4                                            #
-#                                                        #
-#  YOUR NAME                                             #
-#  YOUR ACCESS ID                                        #
-#                                                        #
-#  DATE OF SUBMISSION                                    #
-##########################################################
-
-
-
-
-##########################################################
-#  CMPSC 457                                             #
-#  Makefile for HW 4                                     #
-#                                                        #
-#                                                        #
-#  Your source codes should be named as                  #
-#                                                        #
-#            template.cxx                                #
-#                                                        #
-#                                                        #
-#  To compile your program, type                         #
-#                                                        #
-#            make template                               #
-#                                                        #
-#  or, simply type                                       #
-#                                                        #
-#            make                                        #
-#                                                        #
-#  on your shell.                                        #
-#                                                        #
-#                                                        #
-#  To run your program, type                             #
-#                                                        #
-#            make run                                    #
-#                                                        #
-#                                                        #
-#  To remove the executable 'template' and other backup  #
-#  files (e.g., template.cxx~, etc), type                #
-#                                                        #
-#            make clean                                  #
-#                                                        #
-##########################################################
-
+# CMPSC 457 Section 001
+# Homework 4
+#
+# Alexander Petrov
+# aop5448
+#
+# 10/22/25
 
 
 # compiler to be used

@@ -6,7 +6,6 @@
     aop5448
 
     10/22/25
-
 */
 /*********************************************************************
  *  CMPSC 457                                                        *
@@ -489,13 +488,35 @@ void drawFaces()
   /*       with GL_LINE_LOOP primitive.             */
   /**************************************************/
 
-  glBegin(GL_LINE_LOOP);
-    glVertex2d(255.5, 306.7);
-    glVertex2d(204.3, 281.1);
-    glVertex2d(204.3, 204.3);
-    glVertex2d(306.7, 204.3);
-    glVertex2d(306.7, 281.1);
-  glEnd();
+  // M = M_vp * M_orth * M_P * M_cam
+  // M = SetOrthoMatrix * SetPerspMatrix * SetViewMatrix
+  Matrix4 M_final = Mult4(cam.Mo, Mult4(cam.Mp, Mult4(cam.Mv, obj.frame)));
+
+  for(int iFace=0; iFace < obj.Nfaces; iFace++){
+    glBegin(GL_LINE_LOOP);
+
+    for(int iVert=0; iVert < obj.faces[iFace][0]; iVert++){
+      int objVertIndex = obj.faces[iFace][iVert+1];
+
+      HPoint3 CannPoint = TransHPoint3(M_final, obj.vertices[objVertIndex]);
+      CannPoint = Homogenize(CannPoint);
+
+      glVertex2d(CannPoint.x, CannPoint.y);
+    }
+
+    glEnd();
+  }
+
+
+
+
+  // glBegin(GL_LINE_LOOP);
+  //   glVertex2d(255.5, 306.7);
+  //   glVertex2d(204.3, 281.1);
+  //   glVertex2d(204.3, 204.3);
+  //   glVertex2d(306.7, 204.3);
+  //   glVertex2d(306.7, 281.1);
+  // glEnd();
 
 }
 
@@ -508,55 +529,92 @@ void drawFaces()
 
 
 
-// Mcam
+// Mcam = (Rotate xyz (world coords) to uvw (cam coords)) * (translate world coords to cam coords)
 void SetViewMatrix()
 {
-  /************************************************/
-  /* Remove the line below and put your code here */
-  /* to set up the matrix Mv for arbitrary view   */
-  /* point as specified in the lecture            */
-  /************************************************/
+  Matrix4 McamRotate;
+  Matrix4 McamTranslate;
 
-  cam.Mv = Matrix4(1.0);  // identity matrix
+  McamRotate = Matrix4(
+    cam.u.x, cam.u.y, cam.u.z, 0,
+    cam.v.x, cam.v.y, cam.v.z, 0,
+    cam.w.x, cam.w.y, cam.w.z, 0,
+    0, 0, 0, 1
+  );
+
+
+  McamTranslate = Matrix4(
+    1, 0, 0, -cam.eye.x,
+    0, 1, 0, -cam.eye.y,
+    0, 0, 1, -cam.eye.z,
+    0, 0, 0, 1
+  );
+
+  cam.Mv = Mult4(McamRotate, McamTranslate);
 
 }
 
 // Mo = Mvp . Morth
+// -> Projection Transformation + Viewport transformation
+// <- M_vp * M_ortho
 void SetOrthoMatrix()
 {
-  /************************************************/
-  /* Remove the lines below that hardcode Mo and  */
-  /* put your code here to set up the matrix Mo   */
-  /* for orthographic projection as specified in  */
-  /* the lecture                                  */
-  /************************************************/
+  Matrix4 Mvp;
+  Matrix4 Mortho;
+  double nx = (double)win_w;
+  double ny = (double)win_h;
 
-  Matrix4 m;
-  m[0][0] = 51.2;  m[0][1] =  0.0;  m[0][2] = 0.0;  m[0][3] = 255.5;
-  m[1][0] =  0.0;  m[1][1] = 51.2;  m[1][2] = 0.0;  m[1][3] = 255.5;
-  m[2][0] =  0.0;  m[2][1] =  0.0;  m[2][2] = 0.4;  m[2][3] = 2.4;
-  m[3][0] =  0.0;  m[3][1] =  0.0;  m[3][2] = 0.0;  m[3][3] = 1.0;
-  cam.Mo = m;
+  Mvp = Matrix4(
+    nx/2,   0,      0,    (nx-1)/2,
+    0,     ny/2,   0,    (ny-1)/2,
+    0,      0,      1,    0,
+    0,      0,      0,    1
+  );
 
+  Mortho = Matrix4(
+    2/(cam.r - cam.l),  0,                  0,                  -(cam.r+cam.l)/(cam.r-cam.l),
+    0,                  2/(cam.t - cam.b),  0,                  -(cam.t+cam.b)/(cam.t-cam.b),
+    0,                  0,                  2/(cam.n - cam.f),  -(cam.n+cam.f)/(cam.n-cam.f),
+    0,                  0,                  0,                  1
+  );
+
+  cam.Mo = Mult4(Mvp, Mortho);
 }
 
 
 // Mp
 void SetPerspMatrix()
 {
-  /************************************************/
-  /* Remove the line below and put your code here */
-  /* to set up the matrix Mp for perspective      */
-  /* projection as specified in the lecture       */
-  /*                                              */
-  /* Note: Mp is just an identity matrix for      */
-  /*       orthographic projection.               */
-  /************************************************/
-
-  cam.Mp = Matrix4(1.0);  // identity matrix
-
+  if(!cam.perspective){
+    cam.Mp = Matrix4(1.0);  // identity matrix
+      std::cout << "falsh" << std::endl;
+  } else {
+      std::cout << "twoo" << std::endl;
+    cam.Mp = Matrix4(
+      cam.n,  0,      0,            0,
+      0,      cam.n,  0,            0,
+      0,      0,      cam.n+cam.f,  -cam.f*cam.n,
+      0,      0,      1,            0
+    );
+  }
 }
 
+/*
+M = M_vp * M_orth * M_P * M_cam
+M = SetOrthoMatrix * SetPerspMatrix * SetViewMatrix
+
+    object space
+vvv modeling transformation
+    world space
+vvv Camera transformation (M_cam)
+    ortho camera space
+vvv perspective transformation (M_P)
+    perspective camera space
+vvv Projection transformation (M_orth, uses clip bounds)
+    cannonical view volume
+vvv viewport transformation (M_vp)
+    viewport
+*/
 
 
 
@@ -586,7 +644,7 @@ void DeviceToWorld(double u, double v, double& x, double& y)
 Matrix4 Mult4(Matrix4 a, Matrix4 b)
 {
   Matrix4 m;
-  register double sum;
+  double sum;
 
   for (int j=0; j<4;  j++)
     for (int i=0; i<4; i++) {
