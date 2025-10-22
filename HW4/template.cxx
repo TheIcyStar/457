@@ -7,40 +7,6 @@
 
     10/22/25
 */
-/*********************************************************************
- *  CMPSC 457                                                        *
- *  Template code for HW 4                                           *
- *                                                                   *
- *                                                                   *
- *  Description:                                                     *
- *                                                                   *
- *  This is a template code for homework 4.                          *
- *                                                                   *
- *  Study the code and read the comments very carefully              *
- *     before you start coding.                                      *
- *                                                                   *
- *  It uses OpenGL Mathematics (GLM) library. See                    *
- *     https://github.com/g-truc/glm/blob/master/manual.md           *
- *  for detail                                                       *
- *                                                                   *
- *                                                                   *
- *                                                                   *
- *  User interface:                                                  *
- *                                                                   *
- *       Modifier    Button    Key    Operation                      *
- *      ------------------------------------------------             *
- *                    left            Translate_xy                   *
- *         shift      left            Translate_xz                   *
- *                    right           Scale                          *
- *                    middle          Rotate                         *
- *                              r     Reset                          *
- *                              p     Toggle projection              *
- *                                                                   *
- *                                                                   *
- *********************************************************************/
-
-
-
 #include <GL/glut.h>
 #include <glm/glm.hpp>
 #include <stdlib.h>
@@ -252,13 +218,9 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-
-
-
 /********************************************
  *     implementation for glut callbacks    *
  ********************************************/
-
 
 // called when the window is resized/moved (and some other cases)
 void reshape(int w, int h)
@@ -341,8 +303,8 @@ void motion(int x, int y)
   //     mtracker's initx, inity, finalx, finaly will not show correct values.
   // You may want to get rid of this output when you are sure that mtracker works fine.
 
-  cout << '(' << x << ',' << y << ',' << mtracker.initx << ',' << mtracker.inity << ")  ("
-       << x << ',' << y << ',' << mtracker.finalx << ',' << mtracker.finaly << ")" << endl;
+  // cout << '(' << x << ',' << y << ',' << mtracker.initx << ',' << mtracker.inity << ")  ("
+  //      << x << ',' << y << ',' << mtracker.finalx << ',' << mtracker.finaly << ")" << endl;
 
   // now, process the user input, i.e., mouse movement
   switch (mtracker.button) {
@@ -400,9 +362,6 @@ void keyboard(unsigned char key, int x, int y)
       break;
   }
 }
-
-
-
 
 /********************************************
  *        implementation for helpers        *
@@ -472,24 +431,10 @@ void initCam()
 
 
 // draw object faces
-// IMPORTANT: you are only allowed to use glVertex2d with GL_LINE_LOOP
 void drawFaces()
 {
-  /**************************************************/
-  /* Remove the lines below that hardcoded vertices */
-  /* and put your code here to draw each face of    */
-  /* the given object.  You should first compute    */
-  /* the overall projection matrix.  Then, apply    */
-  /* the matrix to each vertex when you draw the    */
-  /* faces.  DO NOT forget to homogenize vertices   */
-  /* after transformation.                          */
-  /*                                                */
-  /* NOTE: You are only allowed to use glVertex2d   */
-  /*       with GL_LINE_LOOP primitive.             */
-  /**************************************************/
-
-  // M = M_vp * M_orth * M_P * M_cam
-  // M = SetOrthoMatrix * SetPerspMatrix * SetViewMatrix
+  // M = M_vp * M_orth * M_P * M_cam * M_world  //right to left
+  // M = SetOrthoMatrix * SetPerspMatrix * SetViewMatrix * obj.frame //right to left
   Matrix4 M_final = Mult4(cam.Mo, Mult4(cam.Mp, Mult4(cam.Mv, obj.frame)));
 
   for(int iFace=0; iFace < obj.Nfaces; iFace++){
@@ -506,18 +451,6 @@ void drawFaces()
 
     glEnd();
   }
-
-
-
-
-  // glBegin(GL_LINE_LOOP);
-  //   glVertex2d(255.5, 306.7);
-  //   glVertex2d(204.3, 281.1);
-  //   glVertex2d(204.3, 204.3);
-  //   glVertex2d(306.7, 204.3);
-  //   glVertex2d(306.7, 281.1);
-  // glEnd();
-
 }
 
 
@@ -566,7 +499,7 @@ void SetOrthoMatrix()
 
   Mvp = Matrix4(
     nx/2,   0,      0,    (nx-1)/2,
-    0,     ny/2,   0,    (ny-1)/2,
+    0,      ny/2,   0,    (ny-1)/2,
     0,      0,      1,    0,
     0,      0,      0,    1
   );
@@ -587,9 +520,7 @@ void SetPerspMatrix()
 {
   if(!cam.perspective){
     cam.Mp = Matrix4(1.0);  // identity matrix
-      std::cout << "falsh" << std::endl;
   } else {
-      std::cout << "twoo" << std::endl;
     cam.Mp = Matrix4(
       cam.n,  0,      0,            0,
       0,      cam.n,  0,            0,
@@ -600,11 +531,11 @@ void SetPerspMatrix()
 }
 
 /*
-M = M_vp * M_orth * M_P * M_cam
-M = SetOrthoMatrix * SetPerspMatrix * SetViewMatrix
+M = M_vp * M_orth * M_P * M_cam   //right to left
+M = SetOrthoMatrix * SetPerspMatrix * SetViewMatrix  //right to left
 
     object space
-vvv modeling transformation
+vvv modeling transformation (obj.frame/M_world)
     world space
 vvv Camera transformation (M_cam)
     ortho camera space
@@ -616,29 +547,17 @@ vvv viewport transformation (M_vp)
     viewport
 */
 
-
-
-
 /********************************************************
  * implementation of utilities for matrices and vectors *
  ********************************************************/
 
-
-
 // convert device coordinate to world coordinate
+// "World" = 2d clip space after 2x2x2 cannonical cube projection, not the actual 3d world coords
 void DeviceToWorld(double u, double v, double& x, double& y)
 {
-  /*******************************************/
-  /* Remove the line below and put your code */
-  /* here to convert device coordinates      */
-  /* to world coordinate                     */
-  /*******************************************/
-
-  x = 0;
-  y = 0;
+  x = (u - win_w)/(win_w)*2 + 1;
+  y = -((v - win_h)/(win_h)*2 + 1);
 }
-
-
 
 // returns the product of two 4x4 matrices
 Matrix4 Mult4(Matrix4 a, Matrix4 b)
@@ -656,10 +575,6 @@ Matrix4 Mult4(Matrix4 a, Matrix4 b)
 
   return m;
 }
-
-
-
-
 
 // returns the result of homogenization of the input point
 // homogenization is to make w = 1
@@ -690,79 +605,53 @@ HPoint3 TransHPoint3(Matrix4 m, HPoint3 p)
   return temp;
 }
 
-
-
-
 /***********************************************
  *     implementation for transformations      *
  ***********************************************/
 
-
-
 // translation in xy-plane
 void Translate_xy(double tx, double ty)
 {
-  /************************************************/
-  /* Remove the line below and put your code here */
-  /* for translation in xy plane according to the */
-  /* specification in the handout                 */
-  /************************************************/
-
-  obj.frame = Matrix4(1.0);  // identity matrix
-
+  obj.frame[0][3] += tx;
+  obj.frame[1][3] += ty;
 }
-
 
 // translation in xz-plane
 void Translate_xz(double tx, double ty)
 {
-  /************************************************/
-  /* Remove the line below and put your code here */
-  /* for translation in xz plane according to the */
-  /* specification in the handout                 */
-  /************************************************/
-
-  obj.frame = Matrix4(1.0);  // identity matrix
-
+  obj.frame[0][3] += tx;
+  obj.frame[2][3] += ty;
 }
-
 
 // uniform scale
 void Scale(double sx)
 {
-  /************************************************/
-  /* Remove the line below and put your code here */
-  /* for scaling in all dimensions according to   */
-  /* the specification in the handout             */
-  /************************************************/
+  const double alpha = 0.05;
 
-  obj.frame = Matrix4(1.0);  // identity matrix
-
+  obj.frame[0][0] *= 1 + alpha*sx;
+  obj.frame[1][1] *= 1 + alpha*sx;
+  obj.frame[2][2] *= 1 + alpha*sx;
 }
-
-
 
 // rotation using the Rolling Ball transformation
 void Rotate(double dx, double dy)
 {
-  /************************************************/
-  /* Remove the line below and put your code here */
-  /* for rolling ball rotation according to the   */
-  /* specification in the handout                 */
-  /************************************************/
+  const double sensitivity = 5; //R
+  const double dr = sqrt(dx*dx + dy*dy);
 
-  obj.frame = Matrix4(1.0);  // identity matrix
+  if (dr < EPSILON){ //avoid div by zero
+    return;
+  }
 
+  Vector3 n(-dy/dr, dx/dr, 0);
+  double theta = atan(dr/sensitivity);
+
+  obj.frame = Mult4(SetRotMatrix(n, theta), obj.frame);
 }
-
-
-
-
 
 /*********************************************
  * Implementation for transformation helpers *
  *********************************************/
-
 
 // returns a 4x4 scale matrix, given sx, sy, sz as inputs
 Matrix4 SetScaleMatrix(double sx, double sy, double sz)
@@ -775,7 +664,6 @@ Matrix4 SetScaleMatrix(double sx, double sy, double sz)
   return m;
 }
 
-
 // returns a 4x4 translation matrix, given tx, ty, tz as inputs
 Matrix4 SetTransMatrix(double tx, double ty, double tz)
 {
@@ -787,27 +675,24 @@ Matrix4 SetTransMatrix(double tx, double ty, double tz)
   return m;
 }
 
-
 // returns a 4x4 rotation matrix, given an axis and an angle
+//these functions need to be called *get*foo, not *set*foo >:C
 Matrix4 SetRotMatrix(Vector3 n, double angle)
 {
-  /************************************************/
-  /* Remove the line below and put your code here */
-  /* to set up the rotation matrix according to   */
-  /* the specification in the handout             */
-  /************************************************/
+  double cosTheta = cos(angle);
+  double sinTheta = sin(angle);
 
-  return Matrix4(1.0);
-
+  return Matrix4(
+    cosTheta+n.x*n.x*(1-cosTheta),      n.x*n.y*(1-cosTheta)-n.z*sinTheta,    n.x*n.z*(1-cosTheta)+n.y*sinTheta,  0,
+    n.y*n.x*(1-cosTheta)+n.z*sinTheta,  cosTheta+n.y*n.y*(1-cosTheta),        n.y*n.z*(1-cosTheta)-n.x*sinTheta,  0,
+    n.z*n.x*(1-cosTheta)-n.y*sinTheta,  n.z*n.y*(1-cosTheta)+n.x*sinTheta,    cosTheta+n.z*n.z*(1-cosTheta),      0,
+    0,                                  0,                                    0,                                  1
+  );
 }
-
-
-
 
 /*********************************************
  *    for your convenience when debugging    *
  *********************************************/
-
 
 // prints a 4x4 matrix
 void PrintMat(Matrix4 m)
@@ -837,5 +722,3 @@ void PrintPoint(Point3 p) {
             << p.y << " "
             << p.z << " " << std::endl;
 }
-
-
