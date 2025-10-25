@@ -627,10 +627,13 @@ void Translate_xz(double tx, double ty)
 void Scale(double sx)
 {
   const double alpha = 0.05;
+  Matrix4 scaleMatrix(1.0f);
 
-  obj.frame[0][0] *= 1 + alpha*sx;
-  obj.frame[1][1] *= 1 + alpha*sx;
-  obj.frame[2][2] *= 1 + alpha*sx;
+  scaleMatrix[0][0] *= 1 + alpha*sx;
+  scaleMatrix[1][1] *= 1 + alpha*sx;
+  scaleMatrix[2][2] *= 1 + alpha*sx;
+
+  obj.frame = Mult4(obj.frame, scaleMatrix);
 }
 
 // rotation using the Rolling Ball transformation
