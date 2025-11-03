@@ -53,6 +53,19 @@
       "MIMode": "gdb",
       "miDebuggerPath": "/usr/bin/gdb",
       "preLaunchTask": "build-hw4"
+    },
+    {
+      "name": "Debug HW5",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/HW5/template",
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/HW5",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "preLaunchTask": "build-hw5"
     }
   ]
 }

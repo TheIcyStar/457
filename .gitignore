@@ -3,3 +3,4 @@ hw*
 *.ppm
 template
 !template.cxx
+models/
