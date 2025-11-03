@@ -100,6 +100,8 @@ bool is_inside(const int x, const int y,                        // current pixel
 	       const vec3& p0, const vec3& p1, const vec3& p2,  // triangle vertices
 	       float& alpha, float& beta, float& gamma);        // barycentric coords for current pixel
 
+vec3 get_normal(const vec3& p0, const vec3& p1, const vec3& p2);
+
 
 // for debugging purpose, overload operator<< for vec3
 std::ostream& operator<< (std::ostream& out, const vec3& v);
@@ -378,6 +380,8 @@ void draw_line(int x0, int y0, int x1, int y1, Color c)
     glVertex2d(x0, y0);
     glVertex2d(x1, y1);
     glEnd();
+
+    std::cout << x0 << "," << y0 << " -> " << x1 << "," << y1 << "\n";
 }
 
 
@@ -403,19 +407,27 @@ void draw_model_wireframe()
     // Use red for wires
     Color color(1.0, 0.0, 0.0);
 
-    /*********************************************************/
-    /*            Implement wirefame here                    */
-    /*                                                       */
-    /*  Here is the rough algorithm                          */
-    /*                                                       */
-    /*   - for each triangle                                 */
-    /*     - if it is visible                                */
-    /*       - convert each vertex in world coord sys        */
-    /*         to corresponding vertex in screen coord sys   */
-    /*       - draw 3 lines connecting the 3 vertices        */
-    /*       - cnt++ (count number of triangles drawn)       */
-    /*                                                       */
-    /*********************************************************/
+    for(int i=0; i < model->num_faces(); i++){
+        std::vector<int> face = model->face(i);
+        vec3 p0 = model->vertex(face[0]);
+        vec3 p1 = model->vertex(face[1]);
+        vec3 p2 = model->vertex(face[2]);
+
+        if(!is_visible(p0, p1, p2)){
+            continue;
+        }
+
+        p0 = world2screen(p0);
+        p1 = world2screen(p1);
+        p2 = world2screen(p2);
+
+
+        draw_line(p0.x, p0.y, p1.x, p1.y, color); //p0 -> p1
+        draw_line(p1.x, p1.y, p2.x, p2.y, color); //p1 -> p2
+        draw_line(p2.x, p2.y, p0.x, p0.y, color); //p2 -> p0
+
+        cnt++;
+    }
 
     std::cerr << "draw_model_wireframe: drawn " << cnt << " / " << model->num_faces() << " triangles\n";
 }
@@ -480,43 +492,46 @@ vec3 world2screen(vec3 v)
 }
 
 
-// for back-face culling
-// - if face normal and eye (camera) vector have the angle greater that 90 degree,
-//   no need to draw the face since the eye cannot see the front side of the face.
-// - returns
-//     true if visible (ie, less than 90 <= dot product is not negative)
-//     false if invisible (ie, over 90 <= dot product is negative)
-//
-// can be used by draw_model_wire_frame and draw_model_flat_shading
-//
+/**
+ * Check if the triangle is visible to the camera
+ * can be used by draw_model_wire_frame and draw_model_flat_shading
+ * @returns true if visible
+ * @note Uses `cam`
+ */
 bool is_visible(const vec3& p0, const vec3& p1, const vec3& p2)
 {
-    /**********************************/
-    /*     Replace the next line      */
-    /*         with your code         */
-    /**********************************/
-    return true;
+    vec3 normal = glm::cross(p1-p0, p2-p0);
+    vec3 toCam = cam - p0;
+    return glm::dot(toCam, normal) >= 0;
 }
 
 
-
-// is pixel (x, y) inside the triangle p0-p1-p2?
-//   returns
-//     true if it is inside, false otherwise
-//   also SETS
-//     alpha, beta, gamma
-//
-// can be used by draw_model_flat_shading
-//
+/**
+ * Checks if a pixel is in the triangle p0-p1-p2
+ * can be used by draw_model_flat_shading
+ * @returns true if inside
+ * @note Also sets `alpha`, `beta`, `gamma`
+ */
 bool is_inside(const int x, const int y,                         // current point
 	       const vec3& p0, const vec3& p1, const vec3& p2,   // triangle vertices
 	       float& alpha, float& beta, float& gamma)          // barycentric coords for current pixel
 {
-    /**********************************/
-    /*     Replace the next line      */
-    /*         with your code         */
-    /**********************************/
-    return true;
+
+    // float area = 0.5 * glm::length(glm::cross(p0_2d-p1_2d, p0_2d-p2_2d));
+    float fullArea = 0.5 * (p0.x*p1.y + p1.x*p2.y + p2.x*p0.y - p0.x*p2.y - p1.x*p0.y - p2.x*p1.y);
+    float area12P = 0.5 * (p1.x*p2.y + p2.x*y + x*p1.y - p1.x*y - p2.x*y - x*p2.y);
+    float area01P = 0.5 * (p0.x*p1.y + p1.x*y + x*p0.y - p0.x*y - p1.x*p0.y - x*p1.y);
+
+    beta = area12P / fullArea;
+    gamma = area01P / fullArea;
+    alpha = 1 - beta - gamma;
+
+    return alpha >= 0 && beta >= 0 && gamma >= 0;
+}
+
+//(p1 - p0) x (p2 - p0)
+vec3 get_normal(const vec3& p0, const vec3& p1, const vec3& p2){
+    return glm::cross(p1-p0, p2-p0);
 }
 
 
