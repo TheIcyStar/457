@@ -9,56 +9,6 @@
 */
 
 
-
-/*************************************************************************
- *  CMPSC 457                                                            *
- *  Template code for HW 5                                               *
- *                                                                       *
- *                                                                       *
- *  Description:                                                         *
- *                                                                       *
- *  This is a template code for homework 5.                              *
- *                                                                       *
- *  Study the code and read the comments very carefully                  *
- *     before you start coding.                                          *
- *                                                                       *
- *  It reads the vertex and face information of the triangles            *
- *     of a model from Wavefront .obj format.                            *
- *  Then, it draws the model by drawing all triangles one by one.        *
- *                                                                       *
- *  It uses OpenGL Mathematics (GLM) library. See                        *
- *     https://github.com/g-truc/glm/blob/master/manual.md               *
- *                                                                       *
- *  GLM library conforms to the OpenGL's shading language (GLSL)         *
- *  - To understand how glm library works, see                           *
- *        www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.20.pdf  *
- *  - Especially                                                         *
- *        5.10 Vector and Matrix Operations                              *
- *                                                                       *
- *  GLM also provides,                                                   *
- *     glm::cross(u, v)  <= returns cross product of vectors u and v     *
- *     glm::normalize(v) <= returns unit vector of v                     *
- *  that works similar to                                                *
- *     glm::dot(u, v)    <= returns dot product of vectors u and v       *
- *  as explained in 5.10                                                 *
- *                                                                       *
- *                                                                       *
- *  User interface:                                                      *
- *                                                                       *
- *  1. When it starts, there is no model loaded. You must select a model *
- *     using a function key from F1 to F6.                               *
- *  2. By defulat, the shading mode is set to WIREFRAME.                 *
- *  3. For flat shading, press 'f' to put it in FLAT shading mode.       *
- *  4. For Z-buffering, press 'z' to put it in Z-buffering mode          *
- *     while the program is in FLAT shading mode.                        *
- *     Z-buffering does not work for WIREFRAME mode.                     *
- *  5. Press 'w' to go back to WIREFRAME mode.                           *
- *  6. To quit the program, press 'q'.                                   *
- *                                                                       *
- *************************************************************************/
-
-
-
 #include <GL/glut.h>
 #include <glm/glm.hpp>
 #include <stdlib.h>
@@ -70,6 +20,13 @@
 #include <algorithm>
 #include <vector>
 
+
+struct TriangleBounds {
+    int xMin;
+    int xMax;
+    int yMin;
+    int yMax;
+};
 
 
 // callbacks for glut (see main() for what they do)
@@ -100,7 +57,13 @@ bool is_inside(const int x, const int y,                        // current pixel
 	       const vec3& p0, const vec3& p1, const vec3& p2,  // triangle vertices
 	       float& alpha, float& beta, float& gamma);        // barycentric coords for current pixel
 
+TriangleBounds getTriangleRange(const vec3& p0, const vec3& p1, const vec3& p2);
+
 vec3 get_normal(const vec3& p0, const vec3& p1, const vec3& p2);
+
+float getZBufferPoint(int x, int y);
+void setZBufferPoint(int x, int y, float value);
+void resetZBuffer();
 
 
 // for debugging purpose, overload operator<< for vec3
@@ -135,9 +98,10 @@ vec3 light_dir { 0.0, 0.0, 1.0 };   // must be a unit vector
 
 
 // colors
-vec3 c_ambient { 0.0, 0.0, 0.0 };   // ambient light
-vec3 c_diffuse { 1.0, 1.0, 1.0 };   // diffuse reflectance
-vec3 c_light   { 1.0, 1.0, 1.0 };   // directional light
+// vec3 c_ambient { 0.0, 0.05, 0.3 };   // ambient light (Ca)
+vec3 c_ambient { 0.0, 0.0, 0.0 };   // ambient light (Ca)
+vec3 c_diffuse { 1.0, 1.0, 1.0 };   // diffuse reflectance (Cr)
+vec3 c_light   { 1.0, 1.0, 1.0 };   // directional light (Cl)
 
 
 
@@ -380,8 +344,6 @@ void draw_line(int x0, int y0, int x1, int y1, Color c)
     glVertex2d(x0, y0);
     glVertex2d(x1, y1);
     glEnd();
-
-    std::cout << x0 << "," << y0 << " -> " << x1 << "," << y1 << "\n";
 }
 
 
@@ -436,39 +398,56 @@ void draw_model_wireframe()
 void draw_model_flat_shading()
 {
     int cnt = 0;
+    float alpha, beta, gamma;
 
-    /*********************************************************************/
-    /*                  Implement flat shading here                      */
-    /*                                                                   */
-    /*                                                                   */
-    /*  Here is the rough algorithm                                      */
-    /*                                                                   */
-    /*   - initialize z-buffer with -infinity                            */
-    /*   - for each triangle that is visible                             */
-    /*     - calculate face normal in world coord sys                    */
-    /*     - calculate face color in world coord sys                     */
-    /*       (if n_hat.l_hat is not positive, skip the triangle          */
-    /*     - cnt++ (count number of triangles drawn)                     */
-    /*     - convert each vertex in world coord sys                      */
-    /*         to corresponding vertex in screen coord sys               */
-    /*     - for each pixel inside the triangle (i.e., screen coord sys) */
-    /*       - if z_buffering is on                                      */
-    /*         - calculate z-coord of the pixel in world coord sys       */
-    /*           (Note that world2screen() keeps                         */
-    /*            the z coordinates unchanged from world coord sys)      */
-    /*         - if z-coord of the pixel is closer than current z-value  */
-    /*           - update z-buffer                                       */
-    /*           - draw the pixel                                        */
-    /*         - else                                                    */
-    /*           - skip the pixel                                        */
-    /*       - else                                                      */
-    /*         - draw the pixel                                          */
-    /*                                                                   */
-    /* Do not implement everything inside this function.                 */
-    /* - You should feel free to define helper functions as needed       */
-    /*   so that the code is understandable and debuggable               */
-    /*                                                                   */
-    /*********************************************************************/
+    //Color constants
+    vec3 CrCa = c_diffuse * c_ambient; //Cr*Ca
+    vec3 CrCl = c_diffuse * c_light; //Cr*Cl
+
+    resetZBuffer();
+
+    for(int i=0; i < model->num_faces(); i++){
+        std::vector<int> face = model->face(i);
+        vec3 p0 = model->vertex(face[0]);
+        vec3 p1 = model->vertex(face[1]);
+        vec3 p2 = model->vertex(face[2]);
+
+        vec3 n_hat = glm::normalize(get_normal(p0, p1, p2));
+        vec3 l_hat = glm::normalize(light_dir);
+
+        if(!is_visible(p0,p1,p2) || glm::dot(n_hat, l_hat) < 0.0f){ // If not visible
+            continue;
+        }
+
+
+        p0 = world2screen(p0);
+        p1 = world2screen(p1);
+        p2 = world2screen(p2);
+
+        TriangleBounds faceBounds = getTriangleRange(p0,p1,p2);
+        Color color = CrCa + CrCl * std::max(0.0f, glm::dot(n_hat, l_hat));
+
+
+        for(int x=faceBounds.xMin; x <= faceBounds.xMax; x++){
+            for(int y=faceBounds.yMin; y <= faceBounds.yMax; y++){
+                if(!is_inside(x, y, p0, p1, p2, alpha, beta, gamma)){
+                    continue;
+                }
+
+                if(zbuffer_on){
+                    float depth = p0.z * alpha + p1.z * beta + p2.z * gamma;
+                    if(getZBufferPoint(x,y) > depth){
+                        continue;
+                    }
+                    setZBufferPoint(x, y, depth);
+                }
+
+                draw_point(x,y,color);
+            }
+        }
+
+        cnt++;
+    }
 
     std::cerr << "draw_model_flat_shading: drawn " << cnt << " / " << model->num_faces() << " triangles\n";
 }
@@ -502,13 +481,21 @@ bool is_visible(const vec3& p0, const vec3& p1, const vec3& p2)
 {
     vec3 normal = glm::cross(p1-p0, p2-p0);
     vec3 toCam = cam - p0;
-    return glm::dot(toCam, normal) >= 0;
+    return glm::dot(toCam, normal) >= 0.0f;
 }
 
 
 /**
  * Checks if a pixel is in the triangle p0-p1-p2
  * can be used by draw_model_flat_shading
+ * @param x screen-space coordinate
+ * @param y screen-space coordinate
+ * @param p0 screen-space coordinate
+ * @param p1 screen-space coordinate
+ * @param p2 screen-space coordinate
+ * @param alpha reference to int to set
+ * @param beta  reference to int to set
+ * @param gamma reference to int to set
  * @returns true if inside
  * @note Also sets `alpha`, `beta`, `gamma`
  */
@@ -517,21 +504,74 @@ bool is_inside(const int x, const int y,                         // current poin
 	       float& alpha, float& beta, float& gamma)          // barycentric coords for current pixel
 {
 
-    // float area = 0.5 * glm::length(glm::cross(p0_2d-p1_2d, p0_2d-p2_2d));
     float fullArea = 0.5 * (p0.x*p1.y + p1.x*p2.y + p2.x*p0.y - p0.x*p2.y - p1.x*p0.y - p2.x*p1.y);
-    float area12P = 0.5 * (p1.x*p2.y + p2.x*y + x*p1.y - p1.x*y - p2.x*y - x*p2.y);
+    float area12P = 0.5 * (p1.x*p2.y + p2.x*y + x*p1.y - p1.x*y - p2.x*p1.y - x*p2.y);
     float area01P = 0.5 * (p0.x*p1.y + p1.x*y + x*p0.y - p0.x*y - p1.x*p0.y - x*p1.y);
 
     beta = area12P / fullArea;
     gamma = area01P / fullArea;
     alpha = 1 - beta - gamma;
 
-    return alpha >= 0 && beta >= 0 && gamma >= 0;
+    return alpha >= 0.0f && beta >= 0.0f && gamma >= 0.0f;
+}
+
+/**
+ * Calculates the min and max screen coordinates for a face
+ * @param p0 screen-space coordinate
+ * @param p1 screen-space coordinate
+ * @param p2 screen-space coordinate
+ */
+TriangleBounds getTriangleRange(const vec3& p0, const vec3& p1, const vec3& p2){
+    TriangleBounds bounds;
+
+    bounds.xMin = p0.x;
+    bounds.xMax = p0.x;
+    bounds.yMin = p0.y;
+    bounds.yMax = p0.y;
+
+    // x
+    if(p1.x < bounds.xMin)
+        bounds.xMin = p1.x;
+    if(p2.x < bounds.xMin)
+        bounds.xMin = p2.x;
+    if(p1.x > bounds.xMax)
+        bounds.xMax = p1.x;
+    if(p2.x > bounds.xMax)
+        bounds.xMax = p2.x;
+
+    // y
+    if(p1.y < bounds.yMin)
+        bounds.yMin = p1.y;
+    if(p2.y < bounds.yMin)
+        bounds.yMin = p2.y;
+    if(p1.y > bounds.yMax)
+        bounds.yMax = p1.y;
+    if(p2.y > bounds.yMax)
+        bounds.yMax = p2.y;
+
+    return bounds;
 }
 
 //(p1 - p0) x (p2 - p0)
 vec3 get_normal(const vec3& p0, const vec3& p1, const vec3& p2){
     return glm::cross(p1-p0, p2-p0);
+}
+
+float getZBufferPoint(int x, int y){
+    return zbuffer[x + y*win_w];
+}
+
+void setZBufferPoint(int x, int y, float value){
+    zbuffer[x + y*win_w] = value;
+}
+
+/**
+ * Sets all values in the zbuffer to negative infinity
+ */
+void resetZBuffer(){
+    for(int i=0; i < win_h * win_w; i++){
+        zbuffer[i] = -INFINITY;
+    }
 }
 
 
@@ -540,6 +580,6 @@ vec3 get_normal(const vec3& p0, const vec3& p1, const vec3& p2){
 // overload operator<< for vec3
 std::ostream& operator<< (std::ostream& out, const vec3& v)
 {
-    out << "R: " << v.r << ", G: " << v.g << ", B: " << v.b << ")";
+    out << "(" << v.r << ", " << v.g << ", " << v.b << ")";
     return out;
 }
