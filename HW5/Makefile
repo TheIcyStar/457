@@ -16,8 +16,6 @@ CXX_FLAGS = -Wall -std=c++0x -pedantic -O2
 CXX_FLAGS += -g
 
 
-
-
 # path to directories containing header files
 INC_DIR = -I.
 
