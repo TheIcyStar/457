@@ -380,12 +380,55 @@ void draw_model()
 void draw_model_gouraud_shading()
 {
     int cnt = 0;
+    float alpha, beta, gamma;
 
+    resetZBuffer();
 
-    /*************************************************/
-    /*         Implement Gouraud Shading Here        */
-    /*************************************************/
+    for(int i=0; i < model->num_faces(); i++){
+        std::vector<int> face = model->face(i);
+        std::vector<int> face_n = model->face_vn(i);
 
+        vec3 p0 = model->vertex(face[0]);
+        vec3 p1 = model->vertex(face[1]);
+        vec3 p2 = model->vertex(face[2]);
+
+        vec3 p0_norm = model->normal(face_n[0]);
+        vec3 p1_norm = model->normal(face_n[1]);
+        vec3 p2_norm = model->normal(face_n[2]);
+
+        if(!is_visible(p0,p1,p2)){ // If not visible
+            continue;
+        }
+
+        Color color0 = calculate_color(p0_norm, glm::normalize(light - p0));
+        Color color1 = calculate_color(p1_norm, glm::normalize(light - p1));
+        Color color2 = calculate_color(p2_norm, glm::normalize(light - p2));
+
+        p0 = world2screen(p0);
+        p1 = world2screen(p1);
+        p2 = world2screen(p2);
+        TriangleBounds faceBounds = getTriangleRange(p0,p1,p2);
+
+        for(int x=faceBounds.xMin; x <= faceBounds.xMax; x++){
+            for(int y=faceBounds.yMin; y <= faceBounds.yMax; y++){
+                if(!is_inside(x, y, p0, p1, p2, alpha, beta, gamma)){
+                    continue;
+                }
+
+                float depth = p0.z * alpha + p1.z * beta + p2.z * gamma;
+                if(getZBufferPoint(x,y) > depth){
+                    continue;
+                }
+                setZBufferPoint(x, y, depth);
+
+                Color color = alpha*color0 + beta*color1 + gamma*color2;
+
+                draw_point(x,y,color);
+            }
+        }
+
+        cnt++;
+    }
 
     std::cerr << "draw_model_gouraud_shading: drawn " << cnt << " / " << model->num_faces() << " triangles\n";
 }
@@ -394,12 +437,54 @@ void draw_model_gouraud_shading()
 void draw_model_phong_shading()
 {
     int cnt = 0;
+    float alpha, beta, gamma;
+
+    //Color constants
+    vec3 CrCa = c_diffuse * c_ambient; //Cr*Ca
+    vec3 CrCl = c_diffuse * c_light; //Cr*Cl
+
+    resetZBuffer();
+
+    for(int i=0; i < model->num_faces(); i++){
+        std::vector<int> face = model->face(i);
+        vec3 p0 = model->vertex(face[0]);
+        vec3 p1 = model->vertex(face[1]);
+        vec3 p2 = model->vertex(face[2]);
+
+        vec3 n_hat = glm::normalize(get_normal(p0, p1, p2));
+        vec3 l_hat = glm::normalize(light);
+
+        if(!is_visible(p0,p1,p2) || glm::dot(n_hat, l_hat) < 0.0f){ // If not visible
+            continue;
+        }
 
 
-    /*************************************************/
-    /*         Implement Gouraud Shading Here        */
-    /*************************************************/
+        p0 = world2screen(p0);
+        p1 = world2screen(p1);
+        p2 = world2screen(p2);
 
+        TriangleBounds faceBounds = getTriangleRange(p0,p1,p2);
+        Color color = CrCa + CrCl * std::max(0.0f, glm::dot(n_hat, l_hat));
+
+
+        for(int x=faceBounds.xMin; x <= faceBounds.xMax; x++){
+            for(int y=faceBounds.yMin; y <= faceBounds.yMax; y++){
+                if(!is_inside(x, y, p0, p1, p2, alpha, beta, gamma)){
+                    continue;
+                }
+
+                float depth = p0.z * alpha + p1.z * beta + p2.z * gamma;
+                if(getZBufferPoint(x,y) > depth){
+                    continue;
+                }
+                setZBufferPoint(x, y, depth);
+
+                draw_point(x,y,color);
+            }
+        }
+
+        cnt++;
+    }
 
     std::cerr << "draw_model_phong_shading: drawn " << cnt << " / " << model->num_faces() << " triangles\n";
 }
@@ -457,9 +542,9 @@ bool is_inside(const int x, const int y,                         // current poin
     float area12P = 0.5 * (p1.x*p2.y + p2.x*y + x*p1.y - p1.x*y - p2.x*p1.y - x*p2.y);
     float area01P = 0.5 * (p0.x*p1.y + p1.x*y + x*p0.y - p0.x*y - p1.x*p0.y - x*p1.y);
 
-    beta = area12P / fullArea;
+    alpha = area12P / fullArea;
     gamma = area01P / fullArea;
-    alpha = 1 - beta - gamma;
+    beta = 1 - alpha - gamma;
 
     return alpha >= 0.0f && beta >= 0.0f && gamma >= 0.0f;
 }
@@ -529,14 +614,20 @@ void resetZBuffer(){
 //   - light vector is l_hat
 // using Blinn-Phong illumiation model
 // Note that the specular light should be added only when highlight is on
-Color calculate_color(vec3 n_hat, vec3 l_hat)
-{
-    /**********************************/
-    /*     Replace the next line      */
-    /*         with your code         */
-    /**********************************/
+Color calculate_color(vec3 n_hat, vec3 l_hat){
+    vec3 CrCa = c_diffuse * c_ambient; //Cr*Ca
+    vec3 CrCl = c_diffuse * c_light; //Cr*Cl
 
-    return Color(0.0, 0.0, 0.0);
+    vec3 highlight;
+
+    if(highlight_on){
+        vec3 h_hat = glm::normalize(light + cam);
+        highlight = c_light*std::pow(glm::dot(h_hat, n_hat), phong_constant);
+    } else {
+        highlight = vec3(0,0,0);
+    }
+
+    return CrCa + CrCl*std::max(0.0f, glm::dot(n_hat, l_hat)) + highlight;
 }
 
 
