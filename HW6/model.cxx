@@ -136,7 +136,7 @@ void Model::load_data(const char *filename)
             z_max = std::max(z_max, v[2]);
             x_min = std::min(x_min, v[0]);
             y_min = std::min(y_min, v[1]);
-            z_min = std::min(z_min, v[1]);
+            z_min = std::min(z_min, v[2]);
 
             verts.push_back(v);
         }
