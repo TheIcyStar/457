@@ -439,33 +439,28 @@ void draw_model_phong_shading()
     int cnt = 0;
     float alpha, beta, gamma;
 
-    //Color constants
-    vec3 CrCa = c_diffuse * c_ambient; //Cr*Ca
-    vec3 CrCl = c_diffuse * c_light; //Cr*Cl
-
     resetZBuffer();
 
     for(int i=0; i < model->num_faces(); i++){
         std::vector<int> face = model->face(i);
-        vec3 p0 = model->vertex(face[0]);
-        vec3 p1 = model->vertex(face[1]);
-        vec3 p2 = model->vertex(face[2]);
+        std::vector<int> face_n = model->face_vn(i);
 
-        vec3 n_hat = glm::normalize(get_normal(p0, p1, p2));
-        vec3 l_hat = glm::normalize(light);
+        vec3 p0_world = model->vertex(face[0]);
+        vec3 p1_world = model->vertex(face[1]);
+        vec3 p2_world = model->vertex(face[2]);
 
-        if(!is_visible(p0,p1,p2) || glm::dot(n_hat, l_hat) < 0.0f){ // If not visible
+        vec3 p0_norm = model->normal(face_n[0]);
+        vec3 p1_norm = model->normal(face_n[1]);
+        vec3 p2_norm = model->normal(face_n[2]);
+
+        if(!is_visible(p0_world,p1_world,p2_world)){ // If not visible
             continue;
         }
 
-
-        p0 = world2screen(p0);
-        p1 = world2screen(p1);
-        p2 = world2screen(p2);
-
+        vec3 p0 = world2screen(p0_world);
+        vec3 p1 = world2screen(p1_world);
+        vec3 p2 = world2screen(p2_world);
         TriangleBounds faceBounds = getTriangleRange(p0,p1,p2);
-        Color color = CrCa + CrCl * std::max(0.0f, glm::dot(n_hat, l_hat));
-
 
         for(int x=faceBounds.xMin; x <= faceBounds.xMax; x++){
             for(int y=faceBounds.yMin; y <= faceBounds.yMax; y++){
@@ -473,11 +468,15 @@ void draw_model_phong_shading()
                     continue;
                 }
 
-                float depth = p0.z * alpha + p1.z * beta + p2.z * gamma;
+                float depth = p0.z*alpha + p1.z*beta + p2.z*gamma;
                 if(getZBufferPoint(x,y) > depth){
                     continue;
                 }
                 setZBufferPoint(x, y, depth);
+
+                vec3 point = alpha*p0_world + beta*p1_world + gamma*p2_world;
+                vec3 point_norm = alpha*p0_norm + beta*p1_norm + gamma*p2_norm;
+                Color color = calculate_color(point_norm, glm::normalize(light - point));
 
                 draw_point(x,y,color);
             }
@@ -621,6 +620,7 @@ Color calculate_color(vec3 n_hat, vec3 l_hat){
     vec3 highlight;
 
     if(highlight_on){
+        //Cl*(h_hat dot n_hat)^p
         vec3 h_hat = glm::normalize(light + cam);
         highlight = c_light*std::pow(glm::dot(h_hat, n_hat), phong_constant);
     } else {

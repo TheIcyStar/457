@@ -11,9 +11,9 @@
 CC = g++
 
 # flags to the compiler
-# CXX_FLAGS = -Wall -std=c++0x -pedantic -O2
-CXX_FLAGS = -Wall -std=c++0x -pedantic -O1
-CXX_FLAGS += -g
+CXX_FLAGS = -Wall -std=c++0x -pedantic -O2
+# CXX_FLAGS = -Wall -std=c++0x -pedantic -O1
+# CXX_FLAGS += -g
 
 
 
