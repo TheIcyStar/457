@@ -39,7 +39,7 @@ struct Ray
 
 
 // types of the surface
-// - DIFFuse, SPECular, REREective
+// - DIFFuse, SPECular, REFR: reflective
 // - only DIFF is used in this assignment
 enum Refl_t { DIFF, SPEC, REFR };
 
@@ -59,30 +59,57 @@ struct Sphere
     Sphere(double r, vec3 p, vec3 e, vec3 c, Refl_t refl)
         : r{r}, p{p}, e{e}, c{c}, refl{refl} {}
 
-    double intersect(const Ray& ray) const
-    {
-	// Does the ray intersect this sphere?
-	// - if it does with t > eps, return t
-	// - otherwise, return 0
-	//
-        // Need to solve (d.d)t^2 + 2d.(o-c)t + (o-c).(o-c) - R^2 = 0
+    /** Check if a ray intersects with a sphere
+     * @param ray raycast ray
+     * @return t if ray intersects with t > eps, else 0
+     */
+    double intersect(const Ray& ray) const {
+        /*
+            Need to solve (d.d)t^2 + 2d.(o-c)t + (o-c).(o-c) - R^2 = 0
+            ax^2 + bx + c = 0
 
-	//
-	// Your code here
-	//
+            a = d.d
+            b = 2d.(o-c)
+            c = (o-c).(o-c) - R^2 = O^2 - R^2 (from ref link)
+            x = t
+
+            quadratic eq'n: (-b +- sqrt(delta))/2a
+            delta = b^2 - 4ac
+
+            references: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
+                        + lecture
+            if delta > 0:
+                two t's
+            if delta = 0:
+                one t
+            if delta < 0:
+                sphere behind ray
+        */
+
+        double a = glm::dot(ray.d, ray.d);
+        double b = glm::dot(2.0*ray.d, (ray.o - this->p));
+        double c = glm::dot(ray.o - this->p, ray.o  - this->p) - this->r * this->r;
+        double delta = b*b - 4*a*c;
+
+        if(delta < -eps){
+            return 0.0;
+
+        } else if(delta > eps){ //delta > ~0
+            double t0 = (-b + sqrt(delta))/(2*a);
+            double t1 = (-b - sqrt(delta))/(2*a);
+            return min(t0, t1);
+
+        } else { //delta ~= 0
+            return -b / (2.0*a);
+        }
     }
 
-    vec3 normal(vec3& v)
-    {
-	// v is a hit point on the sphere
-	// return the unit normal at the hit point
-	//
-	// you may want to use glm::normalize()
-	//    which takes a vector and returns a unit vector
-
-	//
-	// Your code here
-	//
+    /** Retruns normal vector at point v on the sphere
+     * @param v point on sphere
+     * @returns unit normal vector
+     */
+    vec3 normal(vec3& v){
+        return -glm::normalize(this->p - v);
     }
 };
 
@@ -95,8 +122,9 @@ vector<Sphere> spheres = {
 };
 
 
-vec3 eye(0, 0, 0);      // camera position
-vec3 light(0, 0, 0);    // light source position
+vec3 eye(0, 0, 0);       // camera position
+vec3 light(0, 0, 0);     // light source position
+vec3 lightColor(1,1,1); // light source color (intensity)
 
 
 
@@ -107,26 +135,48 @@ vec3 light(0, 0, 0);    // light source position
 // - return true
 // if not,
 // - return false
-bool hit(const Ray& ray, double& t, int& surface_idx)
-{
+/** Detects raytrace hits
+ * @param ray
+ * @param t set when spheres[surface_idx] was hit
+ * @param surface_idx set when spheres[surface_idx] was hit
+ * @returns bool something was hit
+ */
+bool hit(const Ray& ray, double& t, int& surface_idx){
     // You must check if this ray intersect with each of the spheres
     // and keep track of the closest t and the index of the corresponding sphere
     // Return the closest t and the index using the reference arguments
+    int bestHitId = -1;
+    double bestHitT = INFINITY;
 
-    //
-    // Your code here
-    //
+    for(uint i=0; i<spheres.size(); i++){
+        double hitT = spheres[i].intersect(ray);
+        if(hitT > eps && hitT < bestHitT){
+            bestHitId = i;
+            bestHitT = hitT;
+        }
+    }
+    if(bestHitId == -1){
+        return false;
+    }
+
+    t = bestHitT;
+    surface_idx = bestHitId;
+    return true;
 }
 
 
-// Calculate the intensity using Lambert's law
-// ie, dot product of l_hat and n_hat (or 0 if dot product is negative)
-// Note that n_hat is a unit normal vector at the point where the ray hits the surface
-double lambert(int surface_idx, Ray& ray, double t)
-{
-    //
-    // Your code here
-    //
+/** Calculates the light intensity using Lambert's law
+ * ie, dot product of l_hat and n_hat (or 0 if dot product is negative)
+ * Note that n_hat is a unit normal vector at the point where the ray hits the surface
+ *
+ */
+double lambert(int surface_idx, Ray& ray, double t){
+    vec3 pHit = eye + t*ray.d;
+
+    vec3 n_hat = glm::normalize(pHit - spheres[surface_idx].p);
+    vec3 l_hat = glm::normalize(light - pHit);
+
+    return max(glm::dot(n_hat, l_hat), 0.0);
 }
 
 
@@ -154,8 +204,7 @@ vec3 ray_color(Ray& ray)
 
 
 // Simple ray tracer
-void tracer(int nx, int ny, int d, double theta, ofstream& fout)
-{
+void tracer(int nx, int ny, int d, double theta, ofstream& fout){
     // Generate a ppm image of size nx x ny
     //
     // 1. calculate h, w, scale_factor based on nx, ny, d, and theta
@@ -167,9 +216,37 @@ void tracer(int nx, int ny, int d, double theta, ofstream& fout)
     // 6.    use the color for pixel p'
     // 7. end for
 
-    //
-    // Your code here
-    //
+    fout << "P3\n" <<
+            nx << " " << ny << "\n" <<
+            "255\n";
+
+    double h = 2 * d * tan(theta/2);
+    double w = ((double)nx/(double)ny) * h;
+    double scalingRatio = w/nx;
+
+    for(int yPix=0; yPix < ny; yPix++){
+        for(int xPix=0; xPix < nx; xPix++){
+            // Translate (-nx/2, -ny/2, -d)
+            // Scale (w/nx, w/nx, 1)
+            vec3 p = vec3(
+                (xPix - (nx/2)) * scalingRatio,
+                (yPix - (ny/2)) * scalingRatio,
+                eye.z - d
+            );
+
+            Ray newRay = Ray(
+                eye,
+                glm::normalize(p-eye)
+            );
+
+            vec3 pixColor = ray_color(newRay);
+
+            fout << static_cast<int>(pixColor.r * 255) << " " <<
+                    static_cast<int>(pixColor.g * 255) << " " <<
+                    static_cast<int>(pixColor.b * 255) << " ";
+        }
+    }
+
 }
 
 

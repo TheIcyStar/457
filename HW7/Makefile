@@ -11,12 +11,10 @@
 CC = g++
 
 # flags to the compiler
-CXX_FLAGS = -Wall -ansi -pedantic
+# CXX_FLAGS = -Wall -ansi -pedantic # this breaks `using vec3 = glm::dvec3;`
 # CXX_FLAGS = -Wall -std=c++0x -pedantic -O2
+CXX_FLAGS = -Wall -std=c++0x -pedantic
 CXX_FLAGS += -g
-
-
-
 
 
 # path to directories containing header files
@@ -41,4 +39,4 @@ template: template.cxx $(DEP_H) $(DEP_CXX)
 	$(CC) -o template template.cxx $(DEP_CXX) $(CXX_FLAGS) $(INC_DIR) $(GL_LIBS) $(X_LIBS)
 
 clean:
-	rm -f template  *.o *~
+	rm -f template  *.o *~ *.ppm
