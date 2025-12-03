@@ -79,6 +79,20 @@
       "MIMode": "gdb",
       "miDebuggerPath": "/usr/bin/gdb",
       "preLaunchTask": "build-hw6"
+    },
+    {
+      "name": "Debug HW7",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/HW7/template",
+      "args": ["250","250","img.ppm"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/HW1",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "preLaunchTask": "build-hw7"
     }
   ]
 }

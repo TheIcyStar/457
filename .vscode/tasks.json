@@ -78,6 +78,19 @@
         "isDefault": true
       },
       "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "build-hw7",
+      "type": "shell",
+      "command": "make",
+      "options": {
+        "cwd": "${workspaceFolder}/HW7"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"]
     }
   ]
 }
