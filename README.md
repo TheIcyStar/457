@@ -1,0 +1,52 @@
+# CMPSC 475 - Computer Graphics
+From-scratch implementations of various drawing, viewing, and rendering techniques.
+Uses OpenGL/GLUT as a base, but most library functions were not used.
+
+## Plagarism note
+If you found this repository while doing an assignment, don't look at the code until after you are done with yours and **do NOT use my code**. Open up that textbook and *get good*.
+
+### HW! - Render to .ppm
+Renders a checkerboard pattern to a .ppm file
+
+
+### HW2 - Midpoint line, Midpoint circle
+Draws lines/circles using the midpoint line/circle algorithm.
+Use `L` or `C` to enter a mode, and click to create two points.
+
+
+### HW3 - Triangle drawing: Wireframe, Flat, Gouraud
+Draws triangles with a given shading mode.
+Press `W`, `F`, or `G` to enter a mode, and click to create three points.
+
+
+### HW4 - Viewing
+Renders a simple house-like object from a set of vertices and a transformation matrix.\
+`Left click` with or without `shift` to pan the camera, `Middle click` to rotate, and `Right click` to rotate.\
+Use `P` to toggle perspective.
+
+
+### HW5 - Wireframe, Flat shading, Z-Buffer
+Renders .obj files in wireframe or with flat shading.\
+Press `W`, `F` to change modes, and `Z` to toggle Z-buffering\
+Load the model with function keys (`F1`, `F2`, `F3`, etc)
+
+
+### HW6 - Gouraud, Phong shading
+Renders .obj files with Gouraud or Phong shading.\
+Press `G`, `P` to change modes, `H` to toggle highlights
+Load the model with function keys (`F1`, `F2`, `F3`, etc)
+
+
+### HW7 - Raytracing
+Renders three spheres to a .ppm file.
+
+
+## .obj loading improvements
+The homework template code's .obj loader uses several RegExs to parse the model file. Removing these speeds up model loading for HW5, HW6 by several orders of magnitude. Check the `fastload` branch for the faster loader.\
+Note that both the original and new loader do not fully implement the .obj format.
+
+## Build & Run
+This code should compile with whatever version of g++ in a Linux environment. If you have VS Code, you can select which HW number to run in the "run and debug" tab, and press F5.
+To build and run without VS Code, see `.vscode/launch.json` and `.vscode/tasks.json` for build and running commands.
+
+**IGNORE the devcontainer** unless you need to use an environment similar to the one used for grading.
