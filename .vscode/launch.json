@@ -87,7 +87,7 @@
       "program": "${workspaceFolder}/HW7/template",
       "args": ["250","250","img.ppm"],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/HW1",
+      "cwd": "${workspaceFolder}/HW7",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
