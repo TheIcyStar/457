@@ -3,4 +3,4 @@ hw*
 *.ppm
 template
 !template.cxx
-models/
+# models/ # Adding models for archiving purposes
