@@ -1,12 +1,4 @@
 /*
-    CMPSC 457 Section 001
-    Homework 7
-
-    Alexander Petrov
-    aop5448
-
-    12/3/25
-
     Outputs an n_x by n_y ppm image containing three raytraced spheres
     usage: ./template [n_x] [n_y] [filename.ppm]
 */

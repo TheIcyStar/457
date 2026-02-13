@@ -1,13 +1,3 @@
-/*
-    CMPSC 457 Section 001
-    Homework 6
-
-    Alexander Petrov
-    aop5448
-
-    11/18/25
-*/
-
 /*************************************************************************
  *  COMP 597                                                             *
  *  Template code for HW 6                                               *

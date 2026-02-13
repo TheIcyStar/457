@@ -1,12 +1,4 @@
 /*
-    CMPSC 457 Section 001
-    Homework 6
-
-    Alexander Petrov
-    aop5448
-
-    11/18/25
-
     1. When it starts, its shading mode is set to GOURAUD.
     2. Use 'g' to put it back in GOURAUD mode from other modes.
     3. Use 'p' to put it in PHONG mode.

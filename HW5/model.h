@@ -1,15 +1,3 @@
-/*
-    CMPSC 457 Section 001
-    Homework 5
-
-    Alexander Petrov
-    aop5448
-
-    11/5/25
-*/
-
-
-
 /*************************************************************************
  *  CMPSC 457                                                            *
  *  Template code for HW 5                                               *

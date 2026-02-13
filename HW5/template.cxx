@@ -1,14 +1,3 @@
-/*
-    CMPSC 457 Section 001
-    Homework 5
-
-    Alexander Petrov
-    aop5448
-
-    11/5/25
-*/
-
-
 #include <GL/glut.h>
 #include <glm/glm.hpp>
 #include <stdlib.h>

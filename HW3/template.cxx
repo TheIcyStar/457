@@ -1,12 +1,4 @@
 /*
-    CMPSC 457 Section 001
-    Homework 3
-
-    Alexander Petrov
-    aop5448
-
-    10/1/25
-
     Description:
         Takes three points from a user and draws a triangle depending
         on the shading mode.

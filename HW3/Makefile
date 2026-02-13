@@ -1,15 +1,3 @@
-# CMPSC 457 Section 001
-# Homework 3
-#
-# Alexander Petrov
-# aop5448
-#
-# 10/1/25
-#
-# Description:
-# Makefile for building the program.
-
-
 # compiler to be used
 CC = g++
 

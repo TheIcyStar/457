@@ -1,12 +1,3 @@
-# 	CMPSC 457 Section 001
-# 	Homework 7
-#
-# 	Alexander Petrov
-# 	aop5448
-#
-# 	12/3/25
-
-
 # compiler to be used
 CC = g++
 

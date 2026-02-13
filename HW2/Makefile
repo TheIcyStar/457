@@ -1,15 +1,3 @@
-# CMPSC 457 Section 001
-# Homework 2
-#
-# Alexander Petrov
-# aop5448
-#
-# 9/24/25
-#
-# Description:
-# Mkaefile for building the program.
-
-
 # compiler to be used
 CC = g++
 

@@ -1,11 +1,6 @@
 /*********************************************************************
- *  CMPSC 457 Section 001                                            *
+ *  CMPSC 457                                                        *
  *  Homework 1                                                       *
- *                                                                   *
- *  Alexander Petrov                                                 *
- *  aop5448                                                          *
- *                                                                   *
- *  09/01/2025                                                       *
  *********************************************************************
     The given code section creates a black-and-magenta checkerboard pattern with 8x8 pixel squares.
 

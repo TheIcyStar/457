@@ -1,12 +1,4 @@
 /*
-    CMPSC 457 Section 001
-    Homework 2
-
-    Alexander Petrov
-    aop5448
-
-    9/24/25
-
     Description:
     This program draws lines or circles.
     Press L for line drawing mode and C for circle drawing mode.
